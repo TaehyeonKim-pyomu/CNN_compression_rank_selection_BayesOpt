@@ -46,12 +46,12 @@ class BayesOpt_rank_selection():
         last_out = last.shape[0]
         last_in = last.shape[1] 
 
-        original_memory = ori_out*ori_in*ori_ker*ori_ker2
-        decomposed_memory = (first_out*first_in) + (core_in*core_out*ori_ker*ori_ker2) + (last_in*last_out)
+        original_computation = ori_out*ori_in*ori_ker*ori_ker2
+        decomposed_computation = (first_out*first_in) + (core_in*core_out*ori_ker*ori_ker2) + (last_in*last_out)
 
-        memory_error = decomposed_memory/original_memory
+        computation_error = decomposed_computation/original_computation
 
-        Error = float(recon_error + memory_error) 
+        Error = float(recon_error + computation_error) 
 
         return Error 
 
