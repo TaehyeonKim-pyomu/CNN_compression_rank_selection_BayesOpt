@@ -1,4 +1,4 @@
-# BayesOpt-based Global Optimal Rank Selection for Compression of CNNs
+# BayesOpt-based Global Optimal Rank Selection for Compression of CNNs (Pytorch Implementation)
 T. Kim, J. Lee and Y. Choe, "Bayesian Optimization-Based Global Optimal Rank Selection for Compression of Convolutional Neural Networks," in IEEE Access, vol. 8, pp. 17605-17618, 2020, doi: 10.1109/ACCESS.2020.2968357.
 
 # Abstract 
