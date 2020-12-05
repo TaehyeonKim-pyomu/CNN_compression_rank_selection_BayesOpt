@@ -102,7 +102,7 @@ def BayesOpt_tucker_decomposition():
 
     core_layer = torch.nn.Conv2d(in_channels=core.shape[1], out_channels=core.shape[0], kernel_size=conv.kernel_size, stride=conv.stride, padding=conv.padding, dilation=conv.dilation, bias=False) 
 
-    last_layer = torch.nn.Conv2d(in_channels=last.shape[1], out_channels=last.shape[1], kernel_size=1, stride=1, padding=0, dilation=0) 
+    last_layer = torch.nn.Conv2d(in_channels=last.shape[1], out_channels=last.shape[0], kernel_size=1, stride=1, padding=0, dilation=0) 
 
     first_layer.weight.data = torch.transpose(first,1,0).unsqueeze(-1).unsqueeze(-1)
     last_layer.weight.data = last.unsqueeze(-1).unsqueeze(-1)
