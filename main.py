@@ -1,23 +1,18 @@
 import torch
 import torchvision.models as models
 import torch.nn as nn 
-
 import tensorly as tl 
 from tensorly.decomposition import partial_tucker 
-tl.set_backend('pytorch') 
-
 import GPyOpt 
 import GPy 
 from GPyOpt.models.gpmodel import GPModel 
 from GPyOpt.core.task.space import Design_space
 from GPyOpt.acquisitions.EI import AcquisitionEI
-
 import numpy as np
 
 global conv
 
 model = models.vgg16(pretrained=True)
-
 
 class BayesOpt_rank_selection():
     def f(self, x):
@@ -26,11 +21,11 @@ class BayesOpt_rank_selection():
 
         ranks = [int(x1), int(x2)]
 
-        core,[last,first] = partial_tucker(conv.weight.data, modes=[0,1], ranks=ranks, init='svd')
+        core,[last,first] = partial_tucker(conv.weight.data.cpu().numpy(), modes=[0,1], ranks=ranks, init='svd')
 
-        recon_error = tl.norm(conv.weight.data - tl.tucker_to_tensor((core,[last,first])),2) / tl.norm(conv.weight.data,2) 
+        recon_error = tl.norm(conv.weight.data.cpu().numpy() - tl.tucker_to_tensor((core,[last,first])),2) / tl.norm(conv.weight.data.cpu().numpy(),2) 
 
-        #recon_error = np.nan_to_num(recon_error) 
+        recon_error = np.nan_to_num(recon_error) 
 
         ori_out = conv.weight.data.shape[0] 
         ori_in = conv.weight.data.shape[1]
@@ -51,7 +46,12 @@ class BayesOpt_rank_selection():
 
         computation_error = decomposed_computation/original_computation
 
+        if computation_error > 1.0:
+            computation_error = 5.0
+
         Error = float(recon_error + computation_error) 
+
+        print('%d, %d, %f, %f, %f'%(x1,x2,recon_error,computation_error,Error)) 
 
         return Error 
 
@@ -62,7 +62,7 @@ def estimate_ranks_BayesOpt():
     axis_0 = conv.weight.data.shape[0] 
     axis_1 = conv.weight.data.shape[1] 
 
-    space = [{'name':'rank_1', 'type':'continuous', 'domain':(1,axis_0)}, {'name':'rank_2','type':'continuous','domain':(1,axis_1)}]
+    space = [{'name':'rank_1', 'type':'continuous', 'domain':(1,axis_0-1)}, {'name':'rank_2','type':'continuous','domain':(1,axis_1-1)}]
 
     feasible_region = GPyOpt.Design_space(space=space)
 
@@ -81,8 +81,8 @@ def estimate_ranks_BayesOpt():
 
     max_time = None
     tolerance = 10e-3 
-    max_iter = 30 
-    bo.run_optimization(max_iter=max_iter, max_time=max_time, eps=tolerance, verbosity=False) 
+    max_iter = 3 
+    bo.run_optimization(max_iter=max_iter, max_time=max_time, eps=tolerance, verbosity=True) 
 
     bo.plot_acquisition()
     bo.plot_convergence() 
@@ -96,20 +96,24 @@ def estimate_ranks_BayesOpt():
 def BayesOpt_tucker_decomposition():
     ranks = estimate_ranks_BayesOpt()
     print(conv, "BayesOpt estimated ranks", ranks)
-    core, [last, first] = partial_tucker(conv.weight.data, modes=[0,1], tol=10e-5, ranks=ranks, init='svd') 
+    core, [last, first] = partial_tucker(conv.weight.data.cpu().numpy(), modes=[0,1], tol=10e-5, ranks=ranks, init='svd') 
 
-    first_layer = torch.nn.Conv2d(in_channels=first.shape[0], out_channels=first.shape[1], kernel_size=1, stride=1, padding=0, dilation=conv.dilation, bias=False) 
+    first_layer = torch.nn.Conv2d(in_channels=first.shape[0], out_channels=first.shape[1], kernel_size=1, stride=1) 
 
     core_layer = torch.nn.Conv2d(in_channels=core.shape[1], out_channels=core.shape[0], kernel_size=conv.kernel_size, stride=conv.stride, padding=conv.padding, dilation=conv.dilation, bias=False) 
 
-    last_layer = torch.nn.Conv2d(in_channels=last.shape[1], out_channels=last.shape[0], kernel_size=1, stride=1, padding=0, dilation=0) 
+    last_layer = torch.nn.Conv2d(in_channels=last.shape[1], out_channels=last.shape[0], kernel_size=1, stride=1) 
 
-    first_layer.weight.data = torch.transpose(first,1,0).unsqueeze(-1).unsqueeze(-1)
-    last_layer.weight.data = last.unsqueeze(-1).unsqueeze(-1)
-    core_layer.weight.data = core 
+    first = torch.from_numpy(first.copy())
+    last = torch.from_numpy(last.copy())
+    core = torch.from_numpy(core.copy())
+
+    first_layer.weight.data = torch.transpose(first,1,0).unsqueeze(-1).unsqueeze(-1).data.cuda()
+    last_layer.weight.data = last.unsqueeze(-1).unsqueeze(-1).data.cuda()
+    core_layer.weight.data = core.data.cuda()
 
     new_layers = [first_layer, core_layer, last_layer] 
-    return nn.Sequential(*new_layers) 
+    return nn.Sequential(*new_layers)
 
 
 for i, key in enumerate(model.features._modules.keys()):
