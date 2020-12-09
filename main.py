@@ -62,7 +62,7 @@ def estimate_ranks_BayesOpt():
     axis_0 = conv.weight.data.shape[0] 
     axis_1 = conv.weight.data.shape[1] 
 
-    space = [{'name':'rank_1', 'type':'continuous', 'domain':(1,axis_0-1)}, {'name':'rank_2','type':'continuous','domain':(1,axis_1-1)}]
+    space = [{'name':'rank_1', 'type':'continuous', 'domain':(2,axis_0-1)}, {'name':'rank_2','type':'continuous','domain':(2,axis_1-1)}]
 
     feasible_region = GPyOpt.Design_space(space=space)
 
