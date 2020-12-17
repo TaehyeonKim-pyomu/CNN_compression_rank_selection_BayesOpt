@@ -25,7 +25,7 @@ class BayesOpt_rank_selection():
 
         recon_error = tl.norm(conv.weight.data.cpu().numpy() - tl.tucker_to_tensor((core,[last,first])),2) / tl.norm(conv.weight.data.cpu().numpy(),2) 
 
-        recon_error = np.nan_to_num(recon_error) 
+        #recon_error = np.nan_to_num(recon_error) 
 
         ori_out = conv.weight.data.shape[0] 
         ori_in = conv.weight.data.shape[1]
